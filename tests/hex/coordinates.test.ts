@@ -163,3 +163,53 @@ describe("oppositeDirection", () => {
 		}
 	});
 });
+
+describe("hex math properties", () => {
+	test("hexDistance obeys triangle inequality", () => {
+		const points = [
+			{ q: 0, r: 0 },
+			{ q: 3, r: -2 },
+			{ q: -1, r: 4 },
+			{ q: 2, r: 1 },
+		];
+		for (const a of points) {
+			for (const b of points) {
+				for (const c of points) {
+					expect(hexDistance(a, c)).toBeLessThanOrEqual(hexDistance(a, b) + hexDistance(b, c));
+				}
+			}
+		}
+	});
+
+	test("walking to a neighbor and back via opposite direction returns to start", () => {
+		const start = { q: 3, r: -2 };
+		for (const dir of HEX_DIRECTIONS) {
+			const neighbor = hexNeighbor(start, dir);
+			const back = hexNeighbor(neighbor, oppositeDirection(dir));
+			expect(back).toEqual(start);
+		}
+	});
+
+	test("hexRing has no duplicate coordinates", () => {
+		for (const radius of [1, 2, 3, 5]) {
+			const ring = hexRing({ q: 0, r: 0 }, radius);
+			const keys = new Set(ring.map((c) => hexKey(c)));
+			expect(keys.size).toBe(ring.length);
+		}
+	});
+
+	test("hexSpiral contains exactly tiles within radius — 3r(r+1)+1 formula", () => {
+		for (const r of [0, 1, 2, 3, 5, 8]) {
+			const spiral = hexSpiral({ q: 0, r: 0 }, r);
+			expect(spiral.length).toBe(3 * r * (r + 1) + 1);
+		}
+	});
+
+	test("every tile in hexSpiral is within radius distance of center", () => {
+		const center = { q: 0, r: 0 };
+		const spiral = hexSpiral(center, 4);
+		for (const coord of spiral) {
+			expect(hexDistance(center, coord)).toBeLessThanOrEqual(4);
+		}
+	});
+});

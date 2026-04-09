@@ -90,4 +90,35 @@ describe("createRng", () => {
 		const rng2 = createRng(303);
 		expect(rng1.shuffle(items)).toEqual(rng2.shuffle(items));
 	});
+
+	test("seed 0 produces valid output", () => {
+		const rng = createRng(0);
+		const val = rng.next();
+		expect(val).toBeGreaterThanOrEqual(0);
+		expect(val).toBeLessThan(1);
+	});
+
+	test("negative seed produces valid output", () => {
+		const rng = createRng(-999);
+		const val = rng.next();
+		expect(val).toBeGreaterThanOrEqual(0);
+		expect(val).toBeLessThan(1);
+	});
+
+	test("nextInt with min === max always returns that value", () => {
+		const rng = createRng(42);
+		for (let i = 0; i < 100; i++) {
+			expect(rng.nextInt(5, 5)).toBe(5);
+		}
+	});
+
+	test("shuffle of empty array returns empty array", () => {
+		const rng = createRng(42);
+		expect(rng.shuffle([])).toEqual([]);
+	});
+
+	test("shuffle of single element returns that element", () => {
+		const rng = createRng(42);
+		expect(rng.shuffle([99])).toEqual([99]);
+	});
 });

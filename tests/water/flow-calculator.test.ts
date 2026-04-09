@@ -299,4 +299,123 @@ describe("computeTick", () => {
 		const overflowEvents = result.events.filter((e) => e.type === "tile_overflow");
 		expect(overflowEvents.length).toBe(1);
 	});
+
+	test("water conservation — total water is preserved across a tick", () => {
+		const tiles = tilesMap([
+			makeTile(0, 0, 20, { waterLevel: 100 }),
+			makeTile(1, 0, 10), // e
+			makeTile(0, 1, 12), // se
+			makeTile(-1, 1, 15), // sw
+		]);
+
+		const result = computeTick(tiles, 0);
+		let totalAfter = 0;
+		for (const state of result.tileUpdates.values()) {
+			totalAfter += state.waterLevel;
+		}
+		// All 100 liters should still exist somewhere
+		expect(Math.round(totalAfter * 1000) / 1000).toBe(100);
+	});
+
+	test("steeper gradient produces proportionally more flow", () => {
+		const tiles = tilesMap([
+			makeTile(0, 0, 20, { waterLevel: 100 }),
+			makeTile(1, 0, 10), // e: diff=10
+			makeTile(0, 1, 15), // se: diff=5
+		]);
+
+		const result = computeTick(tiles, 0);
+		const eFlow = result.flows.find((f) => f.to.q === 1 && f.to.r === 0);
+		const seFlow = result.flows.find((f) => f.to.q === 0 && f.to.r === 1);
+
+		expect(eFlow).toBeDefined();
+		expect(seFlow).toBeDefined();
+		if (eFlow === undefined || seFlow === undefined) return;
+
+		// Steeper drop (10 > 5) should receive more water
+		expect(eFlow.flowRate).toBeGreaterThan(seFlow.flowRate);
+	});
+
+	test("broken dam does not block any flow", () => {
+		const tiles = tilesMap([
+			makeTile(0, 0, 10, {
+				waterLevel: 100,
+				content: {
+					kind: "structure",
+					structure: {
+						kind: "dam",
+						material: "concrete",
+						cost: 25,
+						durability: 500,
+						currentDurability: 0,
+						blockCapacity: 100,
+						blockedEdges: ["e"],
+						broken: true,
+					},
+				},
+			}),
+			makeTile(1, 0, 5),
+		]);
+
+		const result = computeTick(tiles, 0);
+		const eastState = result.tileUpdates.get("1,0");
+		expect(eastState).toBeDefined();
+		if (eastState === undefined) return;
+		// Broken dam should not block — water flows through
+		expect(eastState.waterLevel).toBeGreaterThan(0);
+	});
+
+	test("drainage channel makes water flow through low-resistance path", () => {
+		// Two downhill neighbors: one normal slope, one with drainage channel
+		const tiles = tilesMap([
+			makeTile(0, 0, 10, {
+				waterLevel: 100,
+				content: {
+					kind: "structure",
+					structure: {
+						kind: "drainage_channel",
+						cost: 8,
+						channelEdges: ["se"], // drainage toward SE
+					},
+				},
+			}),
+			makeTile(1, 0, 5, { terrain: "slope" }), // e: slope resistance 0.2
+			makeTile(0, 1, 5, { terrain: "slope" }), // se: slope resistance, but drainage → 0
+		]);
+
+		const result = computeTick(tiles, 0);
+		const eFlow = result.flows.find((f) => f.to.q === 1 && f.to.r === 0);
+		const seFlow = result.flows.find((f) => f.to.q === 0 && f.to.r === 1);
+
+		expect(eFlow).toBeDefined();
+		expect(seFlow).toBeDefined();
+		if (eFlow === undefined || seFlow === undefined) return;
+
+		// SE has drainage channel (resistance=0) vs E with slope resistance (0.2)
+		// SE should receive more flow
+		expect(seFlow.flowRate).toBeGreaterThan(eFlow.flowRate);
+	});
+
+	test("multiple sources inject independently in the same tick", () => {
+		const tiles = tilesMap([
+			makeTile(0, 0, 10, {
+				content: {
+					kind: "source",
+					source: { flowRate: 30, startTick: 0, duration: 5 },
+				},
+			}),
+			makeTile(1, -1, 10, {
+				content: {
+					kind: "source",
+					source: { flowRate: 20, startTick: 0, duration: 5 },
+				},
+			}),
+			makeTile(1, 0, 5), // downhill from both
+		]);
+
+		const result = computeTick(tiles, 0);
+		const activations = result.events.filter((e) => e.type === "water_source_activate");
+		// Both sources should activate
+		expect(activations.length).toBe(2);
+	});
 });

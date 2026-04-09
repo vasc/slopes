@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { generatePuzzle, isDifficulty } from "../../src/generator/puzzle-generator.ts";
 import type { Difficulty } from "../../src/generator/puzzle-generator.ts";
+import { loadLevel } from "../../src/level/level-loader.ts";
 import { validateLevel } from "../../src/level/level-validator.ts";
+import { runSimulation } from "../../src/water/simulation.ts";
 
 describe("isDifficulty", () => {
 	test("returns true for valid difficulties", () => {
@@ -125,5 +127,69 @@ describe("generatePuzzle", () => {
 		expect(easy.simulationDuration).toBe(12);
 		expect(medium.simulationDuration).toBe(16);
 		expect(hard.simulationDuration).toBe(20);
+	});
+
+	test("generated level can be loaded and simulated end-to-end", () => {
+		const level = generatePuzzle({ radius: 4, difficulty: "medium", seed: 42, name: "E2E" });
+		const loadResult = loadLevel(level);
+		expect(loadResult.success).toBe(true);
+		if (!loadResult.success) return;
+		const simResult = runSimulation(loadResult.state.tiles, level.simulationDuration, 0);
+		expect(simResult.ticks.length).toBe(level.simulationDuration);
+	});
+
+	test("hard puzzles with no structures cause resource destruction", () => {
+		// A well-designed hard puzzle should be unwinnable without player intervention
+		let destroyedCount = 0;
+		for (const seed of [1, 42, 99, 200, 500]) {
+			const level = generatePuzzle({ radius: 4, difficulty: "hard", seed, name: "H" });
+			const loadResult = loadLevel(level);
+			if (!loadResult.success) continue;
+			const sim = runSimulation(loadResult.state.tiles, level.simulationDuration, 0);
+			destroyedCount += sim.resourcesDestroyed.length;
+		}
+		// Across 5 random hard puzzles, at least some resources should be destroyed
+		expect(destroyedCount).toBeGreaterThan(0);
+	});
+
+	test("sources are always higher than the resources they threaten", () => {
+		const level = generatePuzzle({ radius: 4, difficulty: "hard", seed: 42, name: "Elev" });
+		const sources = level.tiles.filter((t) => t.content.kind === "source");
+		const resources = level.tiles.filter((t) => t.content.kind === "resource");
+		const maxSourceElev = Math.max(...sources.map((s) => s.elevation));
+		const minResourceElev = Math.min(...resources.map((r) => r.elevation));
+		// Water flows downhill, so sources must be above resources
+		expect(maxSourceElev).toBeGreaterThan(minResourceElev);
+	});
+
+	test("no tile has both source and resource content", () => {
+		const level = generatePuzzle({ radius: 5, difficulty: "hard", seed: 77, name: "NoOverlap" });
+		const sourceKeys = new Set(
+			level.tiles
+				.filter((t) => t.content.kind === "source")
+				.map((t) => `${t.coord.q},${t.coord.r}`),
+		);
+		const resourceKeys = new Set(
+			level.tiles
+				.filter((t) => t.content.kind === "resource")
+				.map((t) => `${t.coord.q},${t.coord.r}`),
+		);
+		for (const key of sourceKeys) {
+			expect(resourceKeys.has(key)).toBe(false);
+		}
+	});
+
+	test("budget covers at least one of the cheapest available structure", () => {
+		// The cheapest structure is mud dam at cost 5
+		for (const difficulty of ["easy", "medium", "hard"] as const) {
+			const level = generatePuzzle({ radius: 3, difficulty, seed: 42, name: "B" });
+			expect(level.budget).toBeGreaterThanOrEqual(5);
+		}
+	});
+
+	test("no duplicate tile coordinates in generated level", () => {
+		const level = generatePuzzle({ radius: 5, difficulty: "hard", seed: 42, name: "Dup" });
+		const keys = new Set(level.tiles.map((t) => `${t.coord.q},${t.coord.r}`));
+		expect(keys.size).toBe(level.tiles.length);
 	});
 });

@@ -8,6 +8,9 @@
     "indentStyle": "tab",
     "lineWidth": 100
   },
+  "javascript": {
+    "globals": ["Bun"]
+  },
   "linter": {
     "enabled": true,
     "rules": {
