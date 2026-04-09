@@ -92,6 +92,8 @@ export type { LoadResult } from "./level/level-loader.ts";
 
 export { validateLevel } from "./level/level-validator.ts";
 
+export { LevelDefinitionSchema } from "./level/level-schema.ts";
+
 // ── Scoring ──────────────────────────────────────────────────────────
 export { calculateScore, checkWinCondition, checkParScore } from "./scoring/scoring.ts";
 export type { ScoreBreakdown } from "./scoring/scoring.ts";
@@ -113,3 +115,10 @@ export type {
 	SerializedTileEntry,
 	SerializedStructureEntry,
 } from "./engine/game-engine.ts";
+
+// ── Generator ───────────────────────────────────────────────────────
+export { generatePuzzle, isDifficulty } from "./generator/puzzle-generator.ts";
+export type { Difficulty, GeneratorOptions } from "./generator/puzzle-generator.ts";
+
+export { createRng } from "./generator/random.ts";
+export type { Rng } from "./generator/random.ts";

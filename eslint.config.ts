@@ -4,6 +4,9 @@ export default tseslint.config(
 	{
 		files: ["src/**/*.ts", "tests/**/*.ts"],
 		extends: [tseslint.configs.strictTypeChecked],
+		linterOptions: {
+			noInlineConfig: true,
+		},
 		languageOptions: {
 			parserOptions: {
 				projectService: true,
