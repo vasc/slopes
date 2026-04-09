@@ -98,3 +98,28 @@ Validate a level definition, returning error messages (empty = valid).
 ### `grid.getAllTilesSorted(): Tile[]`
 ### `grid.serialize(): SerializedGrid`
 ### `HexGrid.deserialize(data): HexGrid`
+
+## Puzzle Generator
+
+### `generatePuzzle(options: GeneratorOptions): LevelDefinition`
+Generate a random puzzle level. Options:
+- `radius` — grid radius (1-8)
+- `difficulty` — `"easy" | "medium" | "hard"`
+- `seed` — integer seed for deterministic generation
+- `name` — level name
+
+### `isDifficulty(value: string): value is Difficulty`
+Type guard for the `Difficulty` union.
+
+### `createRng(seed: number): Rng`
+Create a seeded PRNG (Mulberry32 algorithm). Returns an `Rng` with:
+- `next(): number` — float in [0, 1)
+- `nextInt(min, max): number` — integer in [min, max]
+- `nextFloat(min, max): number` — float in [min, max)
+- `pick(items): T` — random element from non-empty array
+- `shuffle(items): T[]` — shuffled copy (Fisher-Yates)
+
+## Level Schema (Zod)
+
+### `LevelDefinitionSchema`
+Zod 4 schema for validating level JSON at system boundaries. Use `LevelDefinitionSchema.safeParse(data)` to validate untrusted input without `any`.

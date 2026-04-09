@@ -23,10 +23,22 @@ index.ts (public API barrel)
 │   │   └── water/flow-calculator.ts
 │   │       └── terrain/terrain.ts
 │   └── scoring/scoring.ts
+├── generator/puzzle-generator.ts
+│   ├── generator/random.ts (seeded PRNG)
+│   └── hex/coordinates.ts
+├── level/level-schema.ts (Zod 4)
 ├── hex/grid.ts
 │   └── hex/coordinates.ts
 ├── resources/resource.ts
 └── types.ts (shared types, no imports)
+
+cli.ts (CLI entry point — not part of library API)
+├── generator/puzzle-generator.ts
+├── level/level-schema.ts
+├── level/level-loader.ts
+├── level/level-validator.ts
+├── water/simulation.ts
+└── scoring/scoring.ts
 ```
 
 ## Data Flow
@@ -52,4 +64,6 @@ SimulationResult + Level → calculateScore() → ScoreBreakdown
 - **Bun** — Runtime, package manager, test runner
 - **TypeScript** — Maximum strictness (noUncheckedIndexedAccess, exactOptionalPropertyTypes, etc.)
 - **Biome** — Formatting + structural linting
-- **typescript-eslint** — Type-aware rules (ban `as` casts, ban `any` propagation)
+- **typescript-eslint** — Type-aware rules (ban `as` casts, ban `any` propagation, `noInlineConfig` bans all eslint-disable comments)
+- **Zod 4** — Schema validation at JSON boundaries (no untyped `JSON.parse`)
+- **Commander** — CLI argument parsing with subcommands

@@ -73,6 +73,32 @@ The level validator checks:
 - Sources have positive flow rate and duration
 - Resources have positive damage threshold and value
 
+## Schema Validation (Zod 4)
+
+Level JSON is validated at the system boundary using a Zod 4 schema (`LevelDefinitionSchema`). This ensures no untyped `JSON.parse` results leak into the engine. The schema validates:
+- All required fields and their types
+- Terrain type, resource type, and structure kind enums
+- Tile content discriminated union (empty/source/resource)
+
+```typescript
+import { LevelDefinitionSchema } from "@slopes/engine";
+
+const result = LevelDefinitionSchema.safeParse(JSON.parse(jsonString));
+if (!result.success) {
+  console.error(result.error.issues);
+}
+```
+
+## Generating Levels
+
+Use the CLI or the `generatePuzzle` function to create random levels:
+
+```bash
+bun run cli -- generate -r 4 -d medium -s 42 -o levels/generated.json
+```
+
+The generator creates terrain with elevation gradients, places water sources on high ground, and positions resources at local minima where water naturally pools.
+
 ## Example
 
 See `levels/tutorial-01.json` for a complete example.
